@@ -1,3 +1,4 @@
+// all operators and their priorities
 let op = new Map([["(", 0], [")", 0], ["+", 1], ["-", 1], ["*", 2], ["/", 2]]);
 
 /**
@@ -51,49 +52,64 @@ class Calculator {
     /**
      * @param {String} value: incoming key value
      * @returns none
-     * The infixExpression 中缀表达式 without semantic error 无语错
-     * is stored in this.equation
+     * The infixExpression 中缀表达式 without semantic error 无语错 is stored in this.equation
+     * 语法正确的情况: 
+     * 一. 输入为运算符时:
+     *    1. 输入为'('且表达式最后一位是运算符或表达式为空
+     *    2. 输入为')'且表示式内的'('比')'多
+     *    3. 表达式不为空且最后一位不是运算符
+     *    4. 表达式不为空, 分为最后一位不是')'和是')'两种情况
+     * 二. 输入为数字或'.'的情况:
+     *    1. 表达式结尾是数字:
+     *       a. 输入为'.'且最后一个数字不是小数
+     *       b. 输入为'0'且最后一个数字不是数字0
+     *       c. 输入0以外其他数字
+     *    2. 表达式结尾不是数字:
+     *       a. 输入不是'.'的所有情况
      */
     updateEquation(value) {
+        // 一.
         if (isOperator(value)) {
             let legal = false;
+            // 1.
             if (value === "(") {
                 if (!this.equation || isOperator(getLastChar(this.equation))) {
                     this.equation += value;
                     legal = true;
                 }
+            // 2.
             } else if (value === ")") {
                 let [l, r] = this.countBracket();
                 if (l > r) {
                     this.equation += value;
                     legal = true;
                 }
-            } else if (this.equation && !isOperator(getLastChar(this.equation))) {
+            // 3.
+            } else if (this.equation && getLastChar(this.equation) !== ")") {
+                this.equation = this.equation.slice(0, this.equation.length-1) + value;
+                legal = true;
+            // 4.
+            } else if (this.equation) {
                 this.equation += value;
                 legal = true;
-            } else if (this.equation && isOperator(getLastChar(this.equation))) {
-                if (getLastChar(this.equation) !== ")") {
-                    this.equation = this.equation.slice(0, this.equation.length-1) + value;
-                    legal = true;
-                } else {
-                    this.equation += value;
-                    legal = true;
-                }
             }
             this.displayValue = legal ? value : this.displayValue;
             this.screen.value = this.displayValue;
         } else if (value === "clear") {
             this.empty();
+        // 二.
         } else if (value !== "=" && value !== "clock" && value !== undefined) {
             let lastNumber = this.getLastNumber();
+            // 1.
             if (lastNumber.length) {
-                if (value === '.' && !lastNumber ||
-                    value === '.' && lastNumber.includes('.')) {
+                // a.
+                if (value === '.' && lastNumber.includes('.')) {
                     return;
-                } else if (value === '0' &&
-                    lastNumber.length === 1 && getLastChar(this.equation) === '0') {
+                // b.
+                } else if (value === '0' && lastNumber === "0") {
                     return;
                 }
+                // c.
                 else {
                     this.equation += value;
                     if (op.has(this.displayValue)) {
@@ -103,7 +119,9 @@ class Calculator {
                     }
                     this.screen.value = this.displayValue;
                 }
+            // 2.
             } else {
+                // a.
                 if (value !== '.') {
                     this.equation += value;
                     this.displayValue = value;
