@@ -1,0 +1,74 @@
+body {
+    font-family: sans-serif;
+}
+
+.property-card {
+    width: 320px;
+    position: relative;
+    box-shadow: 0 2px 7px #dfdfdf;
+    margin: 50px auto;
+}
+
+.badge {
+    position: absolute;
+    left: 20px;
+    top: 20px;
+    background: white;
+    color: black;
+    padding: 5px 20px;
+}
+
+.heart {
+    position: absolute;
+    right: 20px;
+    top: 20px;
+}
+
+.property-thumb {
+    display: block;
+    height: 250px;
+    background-color: #dfdfdf;
+}
+
+.property-thumb img {
+    height: 250px;
+    width: 100%;
+}
+
+.property-details {
+    padding: 30px;
+}
+
+.property-details h3 {
+    margin: 5px 0px;
+    font-size: 28px;
+}
+
+
+.property-details p {
+    color: gray;
+    font-size: 14px;
+    margin: 0px 0px;
+}
+
+.price-guide {
+    font-size: 16px;
+    margin: 20px 0px;
+}
+
+.property-link {
+    text-align: center;
+}
+
+.property-link p {
+    color: white;
+}
+
+.property-link button {
+    padding: 10px 80px;
+    border: 0px;
+    margin: auto;
+    background-color: rgb(14, 100, 237);
+    text-align: center;
+    border-radius: 6px;
+}
