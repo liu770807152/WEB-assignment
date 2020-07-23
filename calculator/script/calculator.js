@@ -17,22 +17,13 @@ function getLastChar(str) {
     return str.charAt(str.length-1);
 }
 
-class Calculator {
-    constructor() {
+export default class Calculator {
+    constructor(keys, screen, equalKey) {
         this.equation = "";
         this.intervalID = null;
-        this.keys = document.querySelector(".calculator-keys");
-        this.keys.addEventListener("click", (event) => {
-            this.updateEquation(event.target.value);
-            console.log(this.equation);
-        });
-        this.equalKey = document.querySelector(".equal");
-        this.equalKey.addEventListener("click", () => {
-            clearInterval(this.intervalID);
-            this.screen.value = this.getResult();
-            this.equation = "";
-        });
-        this.screen = document.querySelector(".calculator-screen");
+        this.keys = keys;
+        this.screen = screen;
+        this.equalKey = equalKey;
     }
     
     /**
@@ -266,6 +257,7 @@ class Calculator {
      * @returns the value of given suffixExpression
      */
     getResult() {
+        clearInterval(this.intervalID);
         let stack = [];
         let suffixExpression = this.toSuffixExpression();
         for (let i = 0; i < suffixExpression.length; i++) {
@@ -283,13 +275,9 @@ class Calculator {
                 stack.push(current);
             }
         }
+        this.equation = "";
         // 保留两位小数, 四舍五入
         return stack[0].toFixed(2);
     }
 
 }
-
-window.onload = (event) => {
-    let calculator = new Calculator();
-};
-
