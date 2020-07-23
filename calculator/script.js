@@ -20,20 +20,16 @@ function getLastChar(str) {
 class Calculator {
     constructor() {
         this.equation = "";
-        this.displayValue = "";
+        this.intervalID = null;
         this.keys = document.querySelector(".calculator-keys");
         this.keys.addEventListener("click", (event) => {
             this.updateEquation(event.target.value);
             console.log(this.equation);
         });
-        this.clock = document.querySelector(".clock");
-        this.clock.addEventListener("click", () => {
-            this.displayClock();
-        })
         this.equalKey = document.querySelector(".equal");
         this.equalKey.addEventListener("click", () => {
+            clearInterval(this.intervalID);
             this.screen.value = this.getResult();
-            this.displayValue = "";
             this.equation = "";
         });
         this.screen = document.querySelector(".calculator-screen");
@@ -43,22 +39,20 @@ class Calculator {
      * Reset the attributes
      */
     empty() {
-        // this.displayValue = "0";
         this.equation = "";
-        this.displayValue = "";
         this.screen.value = "0";
     }
 
     /**
      * @param {String} value: incoming key value
-     * @returns none
+     * @returns null
      * The infixExpression 中缀表达式 without semantic error 无语错 is stored in this.equation
      * 语法正确的情况: 
      * 一. 输入为运算符时:
      *    1. 输入为'('且表达式最后一位是运算符或表达式为空
      *    2. 输入为')'且表示式内的'('比')'多
-     *    3. 表达式不为空且最后一位不是运算符
-     *    4. 表达式不为空, 分为最后一位不是')'和是')'两种情况
+     *    3. 表达式不为空且最后一位不是'.', 而是除了')'以外的其他运算符
+     *    4. 表达式不为空的其他情况
      * 二. 输入为数字或'.'的情况:
      *    1. 表达式结尾是数字:
      *       a. 输入为'.'且最后一个数字不是小数
@@ -70,35 +64,36 @@ class Calculator {
     updateEquation(value) {
         // 一.
         if (isOperator(value)) {
-            let legal = false;
+            clearInterval(this.intervalID);
             // 1.
             if (value === "(") {
                 if (!this.equation || isOperator(getLastChar(this.equation))) {
                     this.equation += value;
-                    legal = true;
                 }
             // 2.
             } else if (value === ")") {
                 let [l, r] = this.countBracket();
                 if (l > r) {
                     this.equation += value;
-                    legal = true;
                 }
             // 3.
-            } else if (this.equation && getLastChar(this.equation) !== ")") {
+            } else if (this.equation && getLastChar(this.equation) !== "." && 
+                isOperator(getLastChar(this.equation)) && getLastChar(this.equation) !== ")" ) {
                 this.equation = this.equation.slice(0, this.equation.length-1) + value;
-                legal = true;
             // 4.
             } else if (this.equation) {
                 this.equation += value;
-                legal = true;
             }
-            this.displayValue = legal ? value : this.displayValue;
-            this.screen.value = this.displayValue;
+            this.screen.value = this.equation;
         } else if (value === "clear") {
+            clearInterval(this.intervalID);
             this.empty();
+        } else if (value === "clock") {
+            this.displayClock();
+        }
         // 二.
-        } else if (value !== "=" && value !== "clock" && value !== undefined) {
+        else if (value !== "=" && value !== undefined) {
+            clearInterval(this.intervalID);
             let lastNumber = this.getLastNumber();
             // 1.
             if (lastNumber.length) {
@@ -112,20 +107,14 @@ class Calculator {
                 // c.
                 else {
                     this.equation += value;
-                    if (op.has(this.displayValue)) {
-                        this.displayValue = value;
-                    } else {
-                        this.displayValue += value;
-                    }
-                    this.screen.value = this.displayValue;
+                    this.screen.value = this.equation;
                 }
             // 2.
             } else {
                 // a.
                 if (value !== '.') {
                     this.equation += value;
-                    this.displayValue = value;
-                    this.screen.value = this.displayValue;                    
+                    this.screen.value = this.equation;                    
                 }
             }
         }
@@ -135,12 +124,12 @@ class Calculator {
      * Show local time for 4s if no interruption. Once interrupted, cancel display of time.
      */
     displayClock() {
-        let intervalID = setInterval(() => {
+        this.intervalID = setInterval(() => {
             this.screen.value = new Date().toLocaleTimeString();
         }, 1000);
         setTimeout(() => {
-            this.screen.value = this.displayValue;
-            clearInterval(intervalID);
+            this.screen.value = this.equation;
+            clearInterval(this.intervalID);
         }, 4000);
     }
 
@@ -202,6 +191,10 @@ class Calculator {
         let tempNum = "";
         // 2.
         for (let i = 0; i < this.equation.length; i++) {
+            // 表达式不完整, 最后一位是'('的情况, 舍去
+            if (i === this.equation.length-1 && this.equation.charAt(i) === "(") {
+                break;
+            }
             let currentChar = this.equation[i];
             // 4.
             if (isOperator(currentChar)) {
@@ -278,6 +271,10 @@ class Calculator {
         for (let i = 0; i < suffixExpression.length; i++) {
             let current = suffixExpression[i];
             if (isOperator(current)) {
+                // 表达式不完整, 最后一位是运算符的情况, 应当给出运算符前的完整表达式结果
+                if (stack.length === 1) {
+                    break;
+                }
                 // IMPORTANT!! Order matters!
                 let num2 = stack.pop();
                 let num1 = stack.pop();
