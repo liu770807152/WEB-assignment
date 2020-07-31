@@ -1,0 +1,38 @@
+一个记忆型翻牌游戏，总共三个level，分别是 2x2, 4x4, 6x6
+分数计算，当前等级 ** 2 * 当前倒计时的时间
+
+游戏流程
+1. 用户点击Start Game，更新游戏界面。level 1， 四张卡片。倒计时开始。
+2. 用户点击卡片，
+    如果该卡片未被翻开过
+        翻开卡片，如果这是翻开的第二张卡片，检查两张卡片是否一致
+            如果一致，持续打开卡片，增加玩家分数
+            否则，1.5秒后盖上这两张卡片
+    如果已经被翻开
+        把该卡片盖上
+3. 如果60s已到，所有卡片并未全部翻转，游戏结束，弹出alert
+4. 如果60s内，所有卡片全部翻转，进入下一level。如果当前为第三个level，结束游戏，结算分数
+
+
+链接：https://lazebear.github.io/Mem/ 
+
+
+刚开始开发的时候，可以把原本game-board这个div里的内容替换成：
+<div class="game-board" style="grid-template-columns: 1fr 1fr;">
+<div class="card css3" data-tech="css3">
+<div class="card__face card__face--front"></div>
+<div class="card__face card__face--back"></div>
+</div>
+<div class="card html5" data-tech="html5">
+<div class="card__face card__face--front"></div>
+<div class="card__face card__face--back"></div>
+</div>
+<div class="card css3" data-tech="css3">
+<div class="card__face card__face--front"></div>
+<div class="card__face card__face--back"></div>
+</div>
+<div class="card html5" data-tech="html5">
+<div class="card__face card__face--front"></div>
+<div class="card__face card__face--back"></div>
+</div>
+</div>

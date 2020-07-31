@@ -1,200 +1,212 @@
-// all card tags
-const CARD_TAGS = [
-    'html5',
-    'css3',
-    'sass',
-    'js',
-    'nodejs',
-    'linkedin',
-    'heroku',
-    'aws',
-    'github',
-    'react'
+// css class for different card image
+const CARD_TECHS = [
+  'html5',
+  'css3',
+  'js',
+  'sass',
+  'nodejs',
+  'react',
+  'linkedin',
+  'heroku',
+  'github',
+  'aws'
 ];
 
-let clock = 60;  // timer
-let timerId = null;  // we need the id of upper clock to use clearTimeOut()
-let alreadyStart = false; // boolean to show game is started or not
-let flipped = []; // store all flipped cards
-let id = 0; // unique id of a card
-
-const gameStatus = {
-    score: 0,
-    level: 1,
-    board: null,
-    timeShow: null,
-    scoreShow: null,
-    levelShow: null,
-    startButton: null,
-    totalCards: 0,
-    flippedCards: 0,
+// only list out some of the properties,
+// add more when needed
+const game = {
+  score: 0,
+  level: 1,
+  timer: 60,
+  started: false,
+  board: null,
+  timerDisplay: null,
+  scoreDisplay: null,
+  levelDisplay: null,
+  timerInterval: null,
+  startButton: null,
+  flipped: []
 };
 
-// initial entry of game
-function run() {
-    gameStatus.board = document.querySelector('.game-board');
-    gameStatus.timeShow = document.querySelector('.game-timer__bar');
-    gameStatus.scoreShow = document.querySelector('.game-stats__score--value');
-    gameStatus.levelShow = document.querySelector('.game-stats__level--value');
-    gameStatus.startButton = document.querySelector('.game-stats__button');
-    //binding
-    gameStatus.startButton.addEventListener('click', () => {
-        if (!alreadyStart) {
-            alreadyStart = true;
-            start();
-        } else {
-            alreadyStart = false;
-            end();
-        }
+const cardNum = new Map([[1, 2], [2, 8], [3, 18]]);
+// let curCard = null;
+let ID = 0;
+let timerID = null;
+
+setGame();
+
+// unbind + handleFlip + handleGameOver
+
+/*******************************************
+/     game process
+/******************************************/
+function setGame() {
+  // register any element in your game object
+  game.timerDisplay = document.querySelector(".game-timer__bar");
+  game.scoreDisplay = document.querySelector(".game-stats__score--value");
+  game.levelDisplay = document.querySelector(".game-stats__level--value");
+  game.startButton = document.querySelector(".game-stats__button");
+  game.board = document.querySelector(".game-board");
+  game.timerInterval = updateTimerDisplay;
+  game.startButton.addEventListener("click", bindStartButton);
+  
+}
+
+function startGame() {
+  const cards = createCards();
+  reset(cards);
+  updateTimerDisplay();
+
+}
+
+function handleCardFlip(card) {
+
+}
+
+function nextLevel() {
+  game.level += 1;
+  game.levelDisplay.innerHTML = game.level;
+  updateScore();
+  startGame();
+}
+
+function handleGameOver() {
+  // calculate the score
+
+  // show the score
+
+  // reset level and score and clock
+
+  // start over again
+  setGame();
+}
+
+/*******************************************
+/     UI update
+/******************************************/
+function updateScore() {
+  game.score += Math.pow(game.level, 2) * game.timer;
+  game.scoreDisplay.innerHTML = game.score;
+}
+
+function updateTimerDisplay() {
+  timerID = setInterval(() => {
+    game.timer--;
+    game.timerDisplay.innerHTML = game.timer + " seconds";
+    if (game.timer <= 0) {
+      handleGameOver();
+    }
+  }, 1000);
+}
+
+/*******************************************
+/     bindings
+/******************************************/
+function bindStartButton() {
+  if (!game.started) {
+    game.started = true;
+    startGame();
+  } else {
+    game.started = false;
+    handleGameOver();
+  }
+}
+
+function unBindCardClick(card) {
+
+}
+
+function bindCardClick(card) {
+  const match = game.flipped.find((c) => {
+    return c.classList.contains(card.classList[0]) && 
+      c.classList[1] !== card.classList[1];
+  });
+  function findCard(c) {
+    const findIt = game.flipped.find((c) => {
+      c.classList.contains(card.classList[0]);
     });
-}
-
-// start the current level of game
-function start() {
-    // clear the board
-    const { board } = gameStatus;
-    while(board.firstChild) {
-        board.removeChild(board.firstChild);
+    return findIt(c);
+  }
+  if (!findCard(card)) {
+    handleCardFlip(card);
+    game.flipped.push(card);
+    // curCard = card;
+  } else if (findCard(card) && match) {
+    handleCardFlip(card);
+    unBindCardClick(card);
+    unBindCardClick(match);
+    // curCard = null;
+  } else if (findCard(card) && !match) {
+    return;
+  }
+  setInterval(() => {
+    if (checkIfWin()) {
+      nextLevel();
     }
-    // create cards
-    const columns = gameStatus.level * 2;
-    gameStatus.totalCards = columns * columns;
-    const cards = [];
-    gameStatus.board.style.gridTemplateColumns = `repeat(${columns},1fr)`;
-    gameStatus.board.style.gridTemplateRows = `repeat(${columns}, 1fr)`;
-    for(let i = 0; i < gameStatus.totalCards / 2; i++){
-        let tag = CARD_TAGS[i % CARD_TAGS.length];
-        const card = fetchCard(tag);
-        cards.push(card);
-        cards.push(card.cloneNode(true));
+  }, 1000);
+}
+
+
+/*******************************************
+/     additional functions
+/******************************************/
+function createCards() {
+  function shuffle(a) {
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
     }
-    while(cards.length) {
-        let randomIndex = Math.floor(Math.random()*cards.length);
-        let card = cards.splice(randomIndex, 1)[0];
-        gameStatus.board.appendChild(card);
-    }
-    if (gameStatus.level === 1) {
-        updateTimer();
-    }
-    bindCard();
-    // set all variables
-    clock = gameStatus.level * 60;
-    gameStatus.startButton.innerHTML = 'End game!';
-    gameStatus.levelShow.innerHTML = gameStatus.level;
-    gameStatus.scoreShow.innerHTML = gameStatus.score;
-
+    return a;
+  }
+  const num = cardNum.get(game.level);
+  const cards = shuffle(CARD_TECHS);
+  let temp;
+  if (game.level < 3) {
+    temp = cards.slice(0, num);
+  } else {
+    temp = cards.concat(cards.slice(0, num-10));
+  }
+  const length = temp.length;
+  for (let i = 0; i < length; i++) {
+    temp.push(temp[i].cloneNode(true));
+  }
+  return temp;
 }
 
-//end the game
-function end() {
-    gameStatus.startButton.innerHTML = 'Start Game!';
-    clearTimeout(timerId);
-    alert('Game\'s over! Your score is: ' + gameStatus.score);
-    gameStatus.flippedCards = 0;
-    gameStatus.level = 1;
-    gameStatus.score = 0;
-    gameStatus.levelShow.innerHTML = gameStatus.level;
-    gameStatus.scoreShow.innerHTML = gameStatus.score;
-    clock = gameStatus.level * 60;
-    gameStatus.timeShow.innerHTML = clock + ' seconds';
-    gameStatus.timeShow.style.width = clock / (60 * gameStatus.level) * 100 + '%';
+function reset(cards) {
+  // remove all previous cards
+  while (game.board.firstChild) {
+    game.board.removeChild(game.board.firstChild);
+  }
+  game.flipped = [];
+  // remake game board
+  const columns = game.level * 2;
+  game.board.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+  game.board.style.gridTemplateRows = `repeat(${columns}, 1fr)`;
+  // add new cards
+  for (const tag of cards) {
+    const card = document.createElement("div");
+    const front = document.createElement("div");
+    const back = document.createElement("div");
+    card.classList.add("card", tag);
+    card.classList.add("ID", ID++);
+    front.classList.add("card__face", "card__face--front");
+    back.classList.add("card__face", "card__face--back");
+    card.appendChild(front);
+    card.appendChild(back);
+    game.board.appendChild(card);
+    // bind new cards
+    card.addEventListener("click", () => {
+      bindCardClick(this);
+    });
+  }
+  // renew clock
+  game.timer = 60;
+  // renew texts
+  game.levelDisplay.innerHTML = game.level;
+  game.startButton.innerHTML = "End it!"
 }
 
-// give all cards ability to flip
-function bindCard() {
-    let cards = document.querySelectorAll('.card');
-    for(let i = 0; i < cards.length; i++) {
-        cards[i].addEventListener('click', flipCard);
-    }
-}
+function checkIfWin() {
 
-// disable ability to flip for a card
-function unBindCard(card) {
-    card.removeEventListener('click', flipCard);
 }
-
-function updateTimer() {
-    if (clock === 0) {
-        end();
-    } else {
-        clock -= 1;
-        gameStatus.timeShow.innerHTML = clock + ' seconds';
-        gameStatus.timeShow.style.width = clock / (60 * gameStatus.level) * 100 + '%';
-        timerId = setTimeout(updateTimer, 1000);
-    }
-}
-
-function levelUp() {
-    gameStatus.level += 1;
-    gameStatus.levelShow.innerHTML = gameStatus.level;
-    start();
-}
-
-// assign the card with a unique tag and two states
-function fetchCard(tag) {
-    let card = document.createElement('div');
-    let cardFront = document.createElement('div');
-    let cardRear = document.createElement('div');
-    cardFront.classList.add('card__face','card__face--front');
-    cardRear.classList.add('card__face','card__face--back');
-    card.classList.add('card', tag);
-    card.appendChild(cardFront);
-    card.appendChild(cardRear);
-    card.dataset.tag = tag;
-    card.classList.add(id);
-    id++;
-    return card;
-}
-
-function flipCard() {
-    let duplicate = false;
-    // check if there's a duplicate card in array 'flipped' with its id
-    flipped.forEach((card) => {
-        if (card.classList[2] === this.classList[2]) {
-            duplicate = true;
-        }})
-    // nothing or a some pairs of cards in array
-    if (flipped.length % 2 === 0) {
-        flipped.push(this);
-        this.classList.add("card--flipped");
-    // if find a pair
-    } else if (duplicate) {
-        gameStatus.flippedCards += 2;
-        flipped.push(this);
-        this.classList.add("card--flipped");
-        // can't flip back the flipped cards
-        flipped.forEach((card) => {
-            unBindCard(card);
-        });
-        // if all cards are flipped, head to next level or win
-        if (gameStatus.flippedCards === gameStatus.totalCards) {
-            if (gameStatus.level < 2) {
-                alert('Congrats! Let\'s move on to next level!');
-                levelUp();
-            } else {
-                alert('Congrats! You win!');
-                end();
-            }
-            calScore();
-            flipped = [];
-            gameStatus.flippedCards = 0;
-        }
-    // if doesn't find a pair
-    } else if (!duplicate) {
-        this.classList.add("card--flipped");
-        //按得太快的话，会有些bug，原因不明，求赐教
-        setTimeout(() => {
-            this.classList.remove("card--flipped");
-            flipped[flipped.length-1].classList.remove("card--flipped");
-            flipped.pop();
-        }, 300);
-    }
-}
-
-function calScore() {
-    // 越快越多分
-    gameStatus.score += gameStatus.level * clock;
-    gameStatus.scoreShow.innerHTML = gameStatus.score;
-}
-
-run();
