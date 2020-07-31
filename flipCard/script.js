@@ -29,13 +29,12 @@ const game = {
 };
 
 const cardNum = new Map([[1, 2], [2, 8], [3, 18]]);
-// let curCard = null;
 let ID = 0;
 let timerID = null;
 
 setGame();
 
-// unbind + handleFlip + handleGameOver
+// line 186~190：bug的根源是异步操作数组。跪求更好的方法延迟翻卡。
 
 /*******************************************
 /     game process
@@ -55,28 +54,59 @@ function setGame() {
 function startGame() {
   const cards = createCards();
   reset(cards);
+  const allCards = document.querySelectorAll(".card");
+  for (const card of allCards) {
+    card.addEventListener("click", () => {
+      bindCardClick(card);
+    });
+  }
   updateTimerDisplay();
-
 }
 
 function handleCardFlip(card) {
+  card.classList.add("card--flipped");
+}
 
+function removeCardFlip(card) {
+  card.classList.remove("card--flipped");
 }
 
 function nextLevel() {
   game.level += 1;
   game.levelDisplay.innerHTML = game.level;
-  updateScore();
-  startGame();
+  setTimeout(() => {
+    updateScore();
+    startGame();
+  }, 1000);
 }
 
 function handleGameOver() {
-  // calculate the score
-
-  // show the score
-
+  // calculate the score + show the score
+  alert("Your final score is: " + game.score);
   // reset level and score and clock
-
+  game.level = 1;
+  game.score = 0;
+  game.timer = 60;
+  game.started = false;
+  game.startButton.innerHTML = "New Game";
+  clearInterval(timerID);
+  while (game.board.firstChild) {
+    game.board.removeChild(game.board.firstChild);
+  }
+  game.flipped = [];
+  // bring back the instruction
+  const board = document.querySelector(".game-board");
+  const header = document.createElement("h3");
+  header.className = 'game-instruction__header';
+  const container = document.createElement("div");
+  container.className = 'game-instruction';
+  const instruction = document.createElement("p");
+  instruction.className = 'game-instruction__content';
+  header.innerHTML = "Instruction";
+  instruction.innerHTML = "- Click on the card to view the back face of the card.<br />Get two exact same card to score.<br />- Score are based on the time and level. <br />- You only have 60s for each level. <br />- There are three levels, '2x2', '4x4' and '6x6'. <br />- Press 'Start Game' button when you are ready."
+  container.appendChild(header);
+  container.appendChild(instruction);
+  board.appendChild(container);
   // start over again
   setGame();
 }
@@ -90,13 +120,24 @@ function updateScore() {
 }
 
 function updateTimerDisplay() {
-  timerID = setInterval(() => {
-    game.timer--;
-    game.timerDisplay.innerHTML = game.timer + " seconds";
-    if (game.timer <= 0) {
-      handleGameOver();
-    }
-  }, 1000);
+  if (!timerID) {
+    timerID = setInterval(() => {
+      game.timer--;
+      game.timerDisplay.innerHTML = game.timer + " seconds";
+      if (game.timer <= 0) {
+        handleGameOver();
+      }
+    }, 1000);
+  } else {
+    clearInterval(timerID);
+    timerID = setInterval(() => {
+      game.timer--;
+      game.timerDisplay.innerHTML = game.timer + " seconds";
+      if (game.timer <= 0) {
+        handleGameOver();
+      }
+    }, 1000);
+  }
 }
 
 /*******************************************
@@ -113,31 +154,37 @@ function bindStartButton() {
 }
 
 function unBindCardClick(card) {
-
+  card.removeEventListener('click', bindCardClick);
 }
 
 function bindCardClick(card) {
   const match = game.flipped.find((c) => {
-    return c.classList.contains(card.classList[0]) && 
-      c.classList[1] !== card.classList[1];
+    // tag is identical but ID is not
+    return c.classList.contains(card.classList[1]) && 
+      c.classList[3] !== card.classList[3];
   });
-  function findCard(c) {
-    const findIt = game.flipped.find((c) => {
-      c.classList.contains(card.classList[0]);
-    });
-    return findIt(c);
-  }
-  if (!findCard(card)) {
+  // flip first card of this new pair
+  if (!(game.flipped.length & 1)) {
     handleCardFlip(card);
     game.flipped.push(card);
-    // curCard = card;
-  } else if (findCard(card) && match) {
+  } 
+  // flip second card of this new pair if they form a pair
+  else if ((game.flipped.length & 1) && match) {
     handleCardFlip(card);
+    game.flipped.push(card);
     unBindCardClick(card);
     unBindCardClick(match);
-    // curCard = null;
-  } else if (findCard(card) && !match) {
-    return;
+  }
+  // this card cannot form a pair with previous card
+  else if ((game.flipped.length & 1) && !match) {
+    // flip it first
+    handleCardFlip(card);
+    // un-flip it later
+    setTimeout(() => {
+      removeCardFlip(card);
+      removeCardFlip(game.flipped[game.flipped.length-1]);
+        game.flipped.pop();
+    }, 800);
   }
   setInterval(() => {
     if (checkIfWin()) {
@@ -166,10 +213,6 @@ function createCards() {
   } else {
     temp = cards.concat(cards.slice(0, num-10));
   }
-  const length = temp.length;
-  for (let i = 0; i < length; i++) {
-    temp.push(temp[i].cloneNode(true));
-  }
   return temp;
 }
 
@@ -184,29 +227,46 @@ function reset(cards) {
   game.board.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
   game.board.style.gridTemplateRows = `repeat(${columns}, 1fr)`;
   // add new cards
+  let container = [];
   for (const tag of cards) {
     const card = document.createElement("div");
     const front = document.createElement("div");
     const back = document.createElement("div");
     card.classList.add("card", tag);
-    card.classList.add("ID", ID++);
     front.classList.add("card__face", "card__face--front");
     back.classList.add("card__face", "card__face--back");
     card.appendChild(front);
     card.appendChild(back);
-    game.board.appendChild(card);
     // bind new cards
-    card.addEventListener("click", () => {
-      bindCardClick(this);
-    });
+    const temp = card.cloneNode(true);
+    card.classList.add("ID", ID++);
+    container.push(card);
+    temp.classList.add("ID", ID++);
+    container.push(temp);
+  }
+  // shuffle all cards
+  const shuffle = (a) => {
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+  container = shuffle(container);
+  for (const card of container) {
+    game.board.appendChild(card);
   }
   // renew clock
   game.timer = 60;
+  game.timerDisplay.innerHTML = 60 + " seconds";
   // renew texts
   game.levelDisplay.innerHTML = game.level;
   game.startButton.innerHTML = "End it!"
 }
 
 function checkIfWin() {
-
+  const num = cardNum.get(game.level) * 2;
+  if (game.flipped.length === num) {
+    nextLevel();
+  }
 }
